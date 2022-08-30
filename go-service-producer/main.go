@@ -1,44 +1,24 @@
 package main
 
 import (
-	"context"
-	endpoints "go-service-producer/endpoints"
+	"go-service-producer/keycloak"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
-	"time"
 )
 
 func main() {
 
-	smux := http.NewServeMux()
-	log := log.New(os.Stdout, "server-producer", log.LstdFlags)
-
-	entityEndpoint := endpoints.NewEntityEndpoint()
-	smux.Handle("/entity/", entityEndpoint)
-
-	submitEndpoint := endpoints.NewSubmitEndpoint()
-	smux.Handle("/submit", submitEndpoint)
-
-	server := http.Server{
-		Addr:         ":9090",
-		Handler:      smux,
-		ErrorLog:     log,
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 8 * time.Second,
-		IdleTimeout:  30 * time.Minute,
-	}
+	server := keycloak.NewServer("localhost", "9090", keycloak.NewKeycloak())
 
 	go func() {
 		log.Println("Server-producer has started on port 9090")
-		err := server.ListenAndServe()
+		err := server.Listen()
 
 		if err != nil {
 			log.Println("Error while starting server: ", err)
 			os.Exit(1)
 		}
-
 	}()
 
 	c := make(chan os.Signal, 1)
@@ -48,6 +28,5 @@ func main() {
 	sig := <-c
 	log.Println("Got signal:", sig)
 
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	server.Shutdown(ctx)
+	server.Shutdown()
 }
