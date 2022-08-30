@@ -32,25 +32,32 @@ func NewServer(host, port string, keycloak *keycloak) *serverHTTP {
 		return true
 	}).Subrouter()
 
-	controller := newController(keycloak)
+	/** USER LOGIN **/
+	authController := newController(keycloak)
 
 	noAuthRouter.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		controller.login(w, r)
+		authController.login(w, r)
 	}).Methods("POST")
 
-	entityEndpoint := endpoints.NewEntityEndpoint()
+	/** AUTHORIZED USER USING ENTITY ENDPOINT **/
+	entityController := endpoints.NewEntityEndpoint()
 
 	authRouter.HandleFunc("/entity", func(w http.ResponseWriter, r *http.Request) {
-		entityEndpoint.ServeHTTP(w, r)
+		entityController.ServeHTTP(w, r)
 	}).Methods("GET")
 
+	/** AUTHORIZED ADMIN USING ALL ENDPOINTS **/
 	authRouterAdmin.HandleFunc("/entity", func(w http.ResponseWriter, r *http.Request) {
-		entityEndpoint.ServeHTTP(w, r)
+		entityController.ServeHTTP(w, r)
 	}).Methods("GET", "POST")
 
+	authRouterAdmin.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+		authController.register(w, r)
+	}).Methods("POST")
+
 	middleware := newMiddleware(keycloak)
-	authRouter.Use(middleware.verifyToken)
-	authRouterAdmin.Use(middleware.verifyTokenAdmin)
+	authRouter.Use(middleware.verifyUser)
+	authRouterAdmin.Use(middleware.verifyAdmin)
 
 	log := log.New(os.Stdout, "server-producer", log.LstdFlags)
 	server := &serverHTTP{

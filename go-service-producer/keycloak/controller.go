@@ -59,3 +59,7 @@ func (ctr *controller) login(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(responseEncoded)
 }
+
+func (ctr *controller) register(w http.ResponseWriter, r *http.Request) {
+
+}
