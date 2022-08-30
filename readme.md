@@ -21,11 +21,11 @@
 
 ```
 {
-	"firstName": "",
+    "firstName": "",
     "lastName": "",
-	"email": "",
-	"enabled": true,
-	"username": "user2",
+    "email": "",
+    "enabled": true,
+    "username": "user2",
     "password": "password2"
 }
 ```
