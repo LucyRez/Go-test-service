@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
+
+	"github.com/Nerzal/gocloak/v11"
 )
 
 type loginRequest struct {
@@ -15,6 +18,15 @@ type loginResponse struct {
 	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refreshToken"`
 	ExpiresIn    int    `json:"expiresIn"`
+}
+
+type registrationRequest struct {
+	FirstName string `json:"firstName,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
+	Email     string `json:"email,omitempty"`
+	Enabled   bool   `json:"enabled"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
 }
 
 type controller struct {
@@ -61,5 +73,47 @@ func (ctr *controller) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ctr *controller) register(w http.ResponseWriter, r *http.Request) {
+	request := &registrationRequest{}
+	decoder := json.NewDecoder(r.Body)
 
+	if err := decoder.Decode(request); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	token := r.Header.Get("Authorization")
+
+	if token == "" {
+		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+		return
+	}
+
+	token = ctr.getBearerToken(token)
+
+	user := gocloak.User{
+		FirstName: gocloak.StringP(request.FirstName),
+		LastName:  gocloak.StringP(request.LastName),
+		Email:     gocloak.StringP(request.Email),
+		Enabled:   gocloak.BoolP(request.Enabled),
+		Username:  gocloak.StringP(request.Username),
+	}
+
+	userId, err := ctr.keycloak.gocloak.CreateUser(context.Background(), token, "test-go", user)
+
+	if err != nil {
+		http.Error(w, "Error: Could not create user", http.StatusBadRequest)
+		return
+	}
+
+	passwordError := ctr.keycloak.gocloak.SetPassword(context.Background(), token, userId, "test-go", request.Password, false)
+
+	if passwordError != nil {
+		http.Error(w, "Error: Could not set new user's password", http.StatusBadRequest)
+		return
+	}
+
+}
+
+func (ctr *controller) getBearerToken(token string) string {
+	return strings.Replace(token, "Bearer ", "", 1)
 }
