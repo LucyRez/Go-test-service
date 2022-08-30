@@ -14,6 +14,21 @@
 }
 
 ```
+### localhost:9090/register
+- Только POST запрос
+- Доступен только для пользователей, прошедших авторизацию с ролью ADMIN
+- Пример тела запроса: 
+
+```
+{
+	"firstName": "",
+    "lastName": "",
+	"email": "",
+	"enabled": true,
+	"username": "user2",
+    "password": "password2"
+}
+```
 
 ### localhost:9090/entity/
 - Доступен только после аутентификации
